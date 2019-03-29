@@ -22,11 +22,39 @@ if [ -f /first_run.tmp ]; then
         --data '{"email":"user@domain.com","password":"#Bugs4Fun"}')
     token=$(echo $login | jq -r .accessToken)
 
-    item=$(curl --request POST \
+    node_1=$(curl --request POST \
         --url $CONTROLLER_HOST/iofog \
         --header "Authorization: $token" \
         --header 'Content-Type: application/json' \
-        --data '{"name": "ioFog Node","fogType": 1}')
+        --data '{"name": "ioFog Node 1","fogType": 1}')
+
+    node_2=$(curl --request POST \
+            --url $CONTROLLER_HOST/iofog \
+            --header "Authorization: $token" \
+            --header 'Content-Type: application/json' \
+            --data '{"name": "ioFog Node 2","fogType": 1}')
+
+    flow=$(curl --request POST \
+            --url $CONTROLLER_HOST/flow \
+            --header "Authorization: $token" \
+            --header 'Content-Type: application/json' \
+            --data '{"name": "Flow 1","isActivated": true}')
+
+    flow_id=$(echo $flow | jq -r .id)
+    uuid_1=$(echo $node_1 | jq -r .uuid)
+    uuid_2=$(echo $node_2 | jq -r .uuid)
+
+    open_weather_micro=$(curl --request POST  \
+            --url $CONTROLLER_HOST/microservices \
+            --header "Authorization: $token" \
+            --header 'Content-Type: application/json' \
+            --data '{"name": "Weather Micro","catalogItemId": 6,"flowId": $flow_id,"iofogUuid": $uuid_1,"rootHostAccess": false,"config": "{\"citycode\":\"5391997\",\"apikey\":\"6141811a6136148a00133488eadff0fb\",\"frequency\":1000}"}')
+
+    json_rest_micro=$(curl --request POST  \
+            --url $CONTROLLER_HOST/microservices \
+            --header "Authorization: $token" \
+            --header 'Content-Type: application/json' \
+            --data '{"name": "JSON REST API","catalogItemId": 7,"flowId": $flow_id,"iofogUuid": $uuid_2,"rootHostAccess": false,"config": "{\"buffersize\":5,\"contentdataencoding\":\"utf8\",\"contextdataencoding\":\"utf8\",\"outputfields\":{\"publisher\":\"source\",\"contentdata\":\"temperature\",\"timestamp\":\"time\"}}"}')
 
     rm /first_run.tmp
 fi
